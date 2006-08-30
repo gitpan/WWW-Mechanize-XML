@@ -1,0 +1,6 @@
+Revision history for Perl extension WWW::Mechanize::XML.
+
+0.01  Thu Aug 10 17:01:15 2006
+	- original version; created by h2xs 1.23 with options
+		-X -n WWW::Mechanize::XML
+
