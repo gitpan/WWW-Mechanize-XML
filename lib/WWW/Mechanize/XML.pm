@@ -46,22 +46,34 @@ facilitate testing of XML APIs and XHTML web pages.
 
 Creates a new C<WWW::Mechanize::XML> object with the specified mechanize and
 parser options. Parser options will be passed directly to the 
-L<XML::LibXML::Parser>. If no paresr options are passed in, defaults are used. 
+L<XML::LibXML::Parser>. If no parser options are passed in, defaults are used. 
 Please see the documentation for L<XML::LibXML::Parser> for option descriptions 
 and default values. Valid parser options accepted are:
 
 =over
+
 =item validation
+
 =item recover
+
 =item recover_silently
+
 =item expand_entities
+
 =item keep_blanks
+
 =item pedantic_parser
+
 =item line_numbers
+
 =item load_ext_dtd
+
 =item complete_attributes
+
 =item expand_xinclude
+
 =item clean_namespaces
+
 =back
 
 =cut
@@ -128,22 +140,17 @@ L<File::Temp>
 =head1 BUGS
 
 Please report any bugs you find via the CPAN RT system.
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Froody>
 
-=head1 AUTHOR
+=head1 COPYRIGHT
 
-Copyright Fotango 2006.  All rights reserved.
+Copyright Fotango 2006. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
-This module has been worked on by the following people:
+=head1 AUTHOR
 
-    Barry White <bwhite@fotango.com>
-
-You can reach the current maintainers by emailing us at C<cpan@fotango.com>,
-but if you're reporting bugs I<please> use the RT system mentioned above so
-we can track the issues you report.
+Barry White <bwhite@fotango.com>
 
 =cut
 
