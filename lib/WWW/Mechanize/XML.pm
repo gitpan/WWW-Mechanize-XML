@@ -1,7 +1,7 @@
 package WWW::Mechanize::XML;
 
 use vars qw( $VERSION );
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 use strict;
 use warnings;
@@ -17,7 +17,7 @@ WWW::Mechanize::XML - adds an XML DOM accessor to L<WWW::Mechanize>.
 
 =head1 VERSION
 
-This document describes WWW::Mechanize::XML version 0.01
+This document describes WWW::Mechanize::XML version 0.02
 
 =head1 SYNOPSIS
 
@@ -42,13 +42,20 @@ facilitate testing of XML APIs and XHTML web pages.
 
 =head1 METHODS 
 
-=head2 new( %mech_options, parser_options => {} )
+=head2 new( %options )
 
-Creates a new C<WWW::Mechanize::XML> object with the specified mechanize and
-parser options. Parser options will be passed directly to the 
-L<XML::LibXML::Parser>. If no parser options are passed in, defaults are used. 
-Please see the documentation for L<XML::LibXML::Parser> for option descriptions 
-and default values. Valid parser options accepted are:
+Creates a new C<WWW::Mechanize::XML> object with the specified options. This 
+constructor method accepts all of the arguments accepted by L<WWW::Mechanize> - 
+see L<WWW::Mechanize> for further details. Other optional arguments accepted by 
+this method are C<xml_parser_options> and C<xml_error_options>:
+
+=head3 xml_parser_options
+
+This argument, if specified, must be a hashref of valid L<XML::LibXML::Parser> 
+options which will be used to instantiate the XML parser. If no parser options 
+are specified defaults are used. Please see the documentation for 
+L<XML::LibXML::Parser> for option descriptions and default values. Valid parser 
+options accepted are:
 
 =over
 
@@ -76,6 +83,15 @@ and default values. Valid parser options accepted are:
 
 =back
 
+=head3 xml_error_options
+
+This argument, if specified, must be a hashref containing at least the 
+C<trigger_xpath> key. If there is a value for the given xpath expression it will
+cause the call to C<xml()> to die with that value. If a C<trigger_value> key is
+specified the call will only die if the value at C<trigger_xpath> equals 
+C<trigger_value>. If a C<message_xpath> key is specified the call to C<xml()> 
+will die with the value at that path.
+
 =cut
 
 my @valid_parser_options = qw(
@@ -95,7 +111,18 @@ my @valid_parser_options = qw(
 sub new {
   my ( $class, %args ) = @_;
   
-  my $parser_options = delete $args{parser_options} || {};
+  # check for 'parser_options' for backwards compatability
+  my $parser_options = 
+    delete $args{xml_parser_options} || delete $args{parser_options} || {};
+  unless (ref $parser_options eq 'HASH') {
+    die "'xml_parser_options' must be a hash-ref" ;
+  }
+  
+  my $error_options = delete $args{xml_error_options} || {};
+  unless (ref $error_options eq 'HASH') {
+    die "'xml_error_options' must be a hash-ref" ;
+  }
+  
   # use catalog to speed up parsing if DTD is loaded 
   my ( $catalog_fh, $catalog_file ) = tempfile();
   my $parser = XML::LibXML->new();
@@ -103,23 +130,26 @@ sub new {
   
   # set each parser option is valid
   foreach my $option (keys %$parser_options) {
-      if (grep { $_ =~ $option } @valid_parser_options) {
-          $parser->$option( $parser_options->{$option} );
-      } else {
-          die "Invalid parser option: $option";
-      }
+    if (grep { $_ =~ $option } @valid_parser_options) {
+      $parser->$option( $parser_options->{$option} );
+    } else {
+      die "Invalid parser option: $option";
+    }
   }
   
   my $self = bless WWW::Mechanize->SUPER::new( %args ), $class;
   $self->{xml_parser} = $parser;
+  $self->{xml_error_options} = $error_options;
   return $self;
 }
 
-=head2 xml()
+=head2 xml( )
 
 Returns a L<XML::LibXML::Document> object created from the response content by
 calling the L<XML::LibXML::Parser> parse_string() method. Any parsing errors 
-will propogate up.
+will propogate up. If C<xml_error_options> were specified for this instance
+the response document is check for errors accordingly - this method will die
+if errors are found in the document as specified by the options.
 
 =cut
 
@@ -128,6 +158,28 @@ sub xml {
   
   my $dom = $self->{xml_parser}->parse_string( $self->content() );
   $dom->indexElements(); # speed up XPath queries for static documents
+  
+  # if a trigger_xpath is set check for error
+  if ($self->{xml_error_options}->{trigger_xpath}) {
+    my $root = $dom->documentElement();
+    my $error = $root->findvalue($self->{xml_error_options}->{trigger_xpath});
+    
+    # if error found at trigger_xpath...
+    if ($error) {
+      
+      # if trigger_value is specified only die if the error has that value
+      my $tv = $self->{xml_error_options}->{trigger_value};
+      return $dom if ($tv && $tv ne $error);
+      
+      # if message_xpath is specified die with the value at that location
+      if ($self->{xml_error_options}->{message_xpath}) {
+        die $root->findvalue($self->{xml_error_options}->{message_xpath});
+      }
+      
+      die $error;
+    }
+  }
+  
   return $dom;
 }
 

@@ -1,4 +1,4 @@
-WWW-Mechanize-XML version 0.01
+WWW-Mechanize-XML version 0.02
 =====================================
 
 This is a subclass of WWW::Mechanize that provides an XML DOM accessor which
